@@ -16,6 +16,8 @@ interface SignUpFormData {
   password: string;
 }
 
+const API_URL = 'https://user-registration-api-dl92.onrender.com';
+
 function SignUp() {
   const {
     register,
@@ -27,7 +29,7 @@ function SignUp() {
 
   const mutation = useMutation({
     mutationFn: async (data: SignUpFormData) => {
-      const response = await axios.post('http://localhost:3000/user/register', data);
+      const response = await axios.post(`${API_URL}/user/register`, data);
       return response.data;
     },
     onSuccess: () => {
