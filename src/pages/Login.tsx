@@ -108,6 +108,7 @@ function Login() {
 
               <Button
                 type="submit"
+                bg="blue.400"
                 colorScheme="blue"
                 width="full"
                 size="md"

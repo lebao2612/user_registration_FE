@@ -141,6 +141,7 @@ function SignUp() {
               {/* Submit Button */}
               <Button
                 type="submit"
+                bg= "blue.400"
                 colorScheme="blue"
                 width="full"
                 size="md"
