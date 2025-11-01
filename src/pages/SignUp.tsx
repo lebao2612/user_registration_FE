@@ -9,48 +9,54 @@ import {
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
-import axios from 'axios';
+import api from '../api/api';
+import { AxiosError } from 'axios';
+import { useState } from 'react';
 
 interface SignUpFormData {
   email: string;
   password: string;
 }
 
-const API_URL = 'https://user-registration-api-dl92.onrender.com';
-
 function SignUp() {
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<SignUpFormData>();
 
   const navigate = useNavigate();
+  const [message, setMessage] = useState<string | null>(null);
+  const [status, setStatus] = useState<'success' | 'error' | null>(null);
 
   const mutation = useMutation({
     mutationFn: async (data: SignUpFormData) => {
-      const response = await axios.post(`${API_URL}/user/register`, data);
+      const response = await api.post('/user/register', data);
       return response.data;
     },
     onSuccess: () => {
-      alert('Account created successfully');
-      navigate('/login');
+      setStatus('success');
+      setMessage('✅ Account created successfully. Redirecting to login...');
+      setTimeout(() => navigate('/login'), 1500);
     },
-    onError: (error: any) => {
-      alert(error.response?.data?.message || 'Error creating account');
+    onError: (error: AxiosError) => {
+      const errorMessage =
+        (error.response?.data as any)?.message || '❌ Error creating account.';
+      setStatus('error');
+      setMessage(errorMessage);
     },
   });
 
   const onSubmit = (data: SignUpFormData) => {
+    setMessage(null);
     mutation.mutate(data);
   };
 
   return (
     <Container
       maxW="container.sm"
-      minH="100vh" // chiếm toàn bộ chiều cao màn hình
+      minH="100vh"
       display="flex"
-      alignContent="center"
       alignItems="center"
       justifyContent="center"
       py={10}
@@ -78,6 +84,21 @@ function SignUp() {
             Create Your Account 🚀
           </Heading>
 
+          {/* Thông báo bằng CSS thuần */}
+          {message && (
+            <Box
+              p={3}
+              borderRadius="md"
+              bg={status === 'success' ? 'green.100' : 'red.100'}
+              border={`1px solid ${status === 'success' ? '#48BB78' : '#F56565'}`}
+              color={status === 'success' ? 'green.700' : 'red.700'}
+              fontSize="sm"
+              textAlign="center"
+            >
+              {message}
+            </Box>
+          )}
+
           <form onSubmit={handleSubmit(onSubmit)}>
             <Box display="flex" flexDirection="column" gap={5}>
               {/* Email Field */}
@@ -88,12 +109,7 @@ function SignUp() {
                 <Input
                   type="email"
                   placeholder="Enter your email"
-                  bg="gray.50"
-                  borderColor="gray.300"
-                  //focusBorderColor="blue.500"
-                  rounded="md"
-                  size="md"
-                  _hover={{ borderColor: 'blue.400' }}
+                  disabled={mutation.isPending}
                   {...register('email', {
                     required: 'Email is required',
                     pattern: {
@@ -117,12 +133,7 @@ function SignUp() {
                 <Input
                   type="password"
                   placeholder="Enter your password"
-                  bg="gray.50"
-                  borderColor="gray.300"
-                  //focusBorderColor="blue.500"
-                  rounded="md"
-                  size="md"
-                  _hover={{ borderColor: 'blue.400' }}
+                  disabled={mutation.isPending}
                   {...register('password', {
                     required: 'Password is required',
                     minLength: {
@@ -141,16 +152,10 @@ function SignUp() {
               {/* Submit Button */}
               <Button
                 type="submit"
-                bg= "blue.400"
+                bg="blue.400"
                 colorScheme="blue"
                 width="full"
-                size="md"
-                fontWeight="600"
-                rounded="lg"
-                loading={isSubmitting}
-                _hover={{ bg: 'blue.600' }}
-                _active={{ bg: 'blue.700' }}
-                mt={2}
+                loading={mutation.isPending}
               >
                 Sign Up
               </Button>

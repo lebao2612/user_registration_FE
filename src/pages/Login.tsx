@@ -7,7 +7,11 @@ import {
   Text,
 } from '@chakra-ui/react';
 import { useForm } from 'react-hook-form';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { useMutation } from '@tanstack/react-query';
+import { useAuth } from '../context/AuthContext';
+import { AxiosError } from 'axios';
+import { useState } from 'react';
 
 interface LoginFormData {
   email: string;
@@ -18,15 +22,33 @@ function Login() {
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<LoginFormData>();
 
-  const navigate = useNavigate();
+  const { login } = useAuth(); // Lấy hàm login từ context
+  const [message, setMessage] = useState<string | null>(null);
+  const [status, setStatus] = useState<'success' | 'error' | null>(null);
+
+  // Sử dụng React Query useMutation
+  const mutation = useMutation({
+    mutationFn: (data: LoginFormData) => login(data.email, data.password),
+    onSuccess: () => {
+      setStatus('success');
+      setMessage('✅ Login successful! Redirecting...');
+      // Không cần navigate, AppRoutes sẽ tự xử lý
+    },
+    onError: (error: AxiosError) => {
+      const errorMessage =
+        (error.response?.data as any)?.message ||
+        '❌ Invalid email or password.';
+      setStatus('error');
+      setMessage(errorMessage);
+    },
+  });
 
   const onSubmit = (data: LoginFormData) => {
-    alert('Login successful');
-    console.log('Login data:', data);
-    navigate('/home');
+    setMessage(null);
+    mutation.mutate(data);
   };
 
   return (
@@ -52,8 +74,26 @@ function Login() {
             Welcome Back 👋
           </Heading>
 
+          {/* Thông báo CSS thuần */}
+          {message && (
+            <Box
+              p={3}
+              borderRadius="md"
+              bg={status === 'success' ? 'green.100' : 'red.100'}
+              border={`1px solid ${
+                status === 'success' ? '#48BB78' : '#F56565'
+              }`}
+              color={status === 'success' ? 'green.700' : 'red.700'}
+              fontSize="sm"
+              textAlign="center"
+            >
+              {message}
+            </Box>
+          )}
+
           <form onSubmit={handleSubmit(onSubmit)}>
             <Box display="flex" flexDirection="column" gap={5}>
+              {/* Email Field */}
               <Box>
                 <Text fontWeight="600" mb={2} color="gray.700">
                   Email
@@ -61,12 +101,7 @@ function Login() {
                 <Input
                   type="email"
                   placeholder="Enter your email"
-                  bg="gray.50"
-                  borderColor="gray.300"
-                  //focusBorderColor="blue.500"
-                  rounded="md"
-                  size="md"
-                  _hover={{ borderColor: 'blue.400' }}
+                  disabled={Boolean(mutation.isPending)}
                   {...register('email', {
                     required: 'Email is required',
                     pattern: {
@@ -82,6 +117,7 @@ function Login() {
                 )}
               </Box>
 
+              {/* Password Field */}
               <Box>
                 <Text fontWeight="600" mb={2} color="gray.700">
                   Password
@@ -89,12 +125,7 @@ function Login() {
                 <Input
                   type="password"
                   placeholder="Enter your password"
-                  bg="gray.50"
-                  borderColor="gray.300"
-                  //focusBorderColor="blue.500"
-                  rounded="md"
-                  size="md"
-                  _hover={{ borderColor: 'blue.400' }}
+                  disabled={Boolean(mutation.isPending)}
                   {...register('password', {
                     required: 'Password is required',
                   })}
@@ -106,24 +137,29 @@ function Login() {
                 )}
               </Box>
 
+              {/* Submit Button */}
               <Button
                 type="submit"
                 bg="blue.400"
                 colorScheme="blue"
                 width="full"
-                size="md"
-                fontWeight="600"
-                rounded="lg"
-                loading={isSubmitting}
-                _hover={{ bg: 'blue.600' }}
-                _active={{ bg: 'blue.700' }}
-                mt={2}
+                loading={Boolean(mutation.isPending)}
               >
                 Login
               </Button>
             </Box>
           </form>
-          <Text textAlign="center"> Don't have an account?{' '} <Link to="/signup" style={{ color: '#3182CE', fontWeight: '500' }}> Sign Up </Link> </Text>
+
+          {/* Footer */}
+          <Text textAlign="center" mt={4}>
+            Don't have an account?{' '}
+            <Link
+              to="/signup"
+              style={{ color: '#3182CE', fontWeight: 500 }}
+            >
+              Sign Up
+            </Link>
+          </Text>
         </Box>
       </Box>
     </Container>
